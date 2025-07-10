@@ -23,5 +23,4 @@ sudo systemctl start flask-api
 sudo systemctl enable flask-api
 
 # Clean up
-cd -
 rm -rf !(flask_api)
