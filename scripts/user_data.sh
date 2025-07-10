@@ -4,7 +4,7 @@ sudo yum update -y
 sudo yum install -y python3 python3-pip nginx git
 
 # Change working directcory
-cd $HOME
+cd /home/ec2-user
 
 # Clone repo
 git clone https://github.com/SifaKasena/aws-hello-world.git
