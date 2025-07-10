@@ -8,6 +8,7 @@ cd /home/ec2-user
 
 # Clone repo
 git clone https://github.com/SifaKasena/aws-hello-world.git
+chown -R ec2-user:ec2-user aws-hello-world
 
 # Setup virtual environment
 cd aws-hello-world
