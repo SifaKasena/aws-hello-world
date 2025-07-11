@@ -8,7 +8,6 @@ cd /home/ec2-user
 
 # Clone repo
 git clone https://github.com/SifaKasena/aws-hello-world.git
-chown -R ec2-user:ec2-user aws-hello-world
 
 # Setup virtual environment
 cd aws-hello-world
@@ -18,12 +17,5 @@ python3 -m pip install --upgrade pip
 pip install -r requirements
 deactivate
 
-# Daemonize gunicorn
-sudo cp scripts/flask-api.service /etc/systemd/system/
-sudo systemctl daemon-reload
-sudo systemctl start flask-api
-sudo systemctl enable flask-api
-
-# Clean up
-# TODO: Find better way to clean up
-rm -rf .git* scripts README.md requirements
+# Change ownership of the project directory
+chown -R ec2-user:ec2-user .
