@@ -1,7 +1,7 @@
 #!/bin/sh
 # Update and install dependencies
 sudo yum update -y
-sudo yum install -y python3 python3-pip nginx git
+sudo yum install -y python3-pip git
 
 # Change working directcory
 cd /home/ec2-user
@@ -14,6 +14,7 @@ chown -R ec2-user:ec2-user aws-hello-world
 cd aws-hello-world
 python3 -m venv .venv
 source .venv/bin/activate
+python3 -m pip install --upgrade pip
 pip install -r requirements
 deactivate
 
@@ -24,4 +25,5 @@ sudo systemctl start flask-api
 sudo systemctl enable flask-api
 
 # Clean up
-rm -rf !(flask_api)
+# TODO: Find better way to clean up
+rm -rf .git* scripts README.md requirements
