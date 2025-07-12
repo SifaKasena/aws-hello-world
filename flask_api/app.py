@@ -2,6 +2,7 @@ import psycopg2
 import boto3
 import json
 from flask import Flask, jsonify, request, abort
+from flask_cors import CORS
 from psycopg2.extras import RealDictCursor
 from botocore.exceptions import ClientError
 
@@ -10,6 +11,7 @@ PORT = "5432"
 DBNAME = "hello_world_db"
 
 app = Flask(__name__)
+CORS(app)
 
 @app.route('/hello')
 def hello():
@@ -48,6 +50,7 @@ def get_conn():
             password=secret['password'],
             host=ENDPOINT,
             port=PORT,
+            cursor_factory=RealDictCursor
         )
     except Exception as e:
         raise e
@@ -55,6 +58,7 @@ def get_conn():
     return conn
 
 # Initialize users table
+@app.before_request
 def init_db():
     with get_conn() as conn:
         with conn.cursor() as cur:
@@ -123,5 +127,4 @@ def delete_user(user_id):
             return jsonify(user)
 
 if __name__ == '__main__':
-    init_db()
     app.run(host='0.0.0.0', port=5000)
