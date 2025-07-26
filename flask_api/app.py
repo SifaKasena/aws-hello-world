@@ -1,3 +1,4 @@
+import os
 import psycopg2
 import boto3
 import json
@@ -5,31 +6,31 @@ from flask import Flask, jsonify, request, abort
 from flask_cors import CORS
 from psycopg2.extras import RealDictCursor
 from botocore.exceptions import ClientError
+from functools import lru_cache
 
-ENDPOINT = "test-api-database.csj2q2ssegfh.us-east-1.rds.amazonaws.com"
-PORT = "5432"
-DBNAME = "hello_world_db"
 
 app = Flask(__name__)
 CORS(app)
 
-@app.route('/hello')
-def hello():
-    return jsonify(message="Hello, world!")
+# Environment‑driven config
+ENDPOINT    = os.getenv("DB_ENDPOINT", "test-api-database.csj2q2ssegfh.us-east-1.rds.amazonaws.com")
+PORT        = os.getenv("DB_PORT",     "5432")
+DBNAME      = os.getenv("DB_NAME",     "hello_world_db")
+SECRET_NAME = os.getenv("DB_SECRET_NAME", "rds!db-335613cb-f3af-460f-93e9-2b452885ccf1")
+AWS_REGION  = os.getenv("AWS_REGION", "us-east-1")
 
-def get_conn():
-    secret_name = "rds!db-335613cb-f3af-460f-93e9-2b452885ccf1"
-    region_name = "us-east-1"
+# AWS clients—created once
+session = boto3.session.Session()
+client = session.client(
+    service_name='secretsmanager',
+    region_name=AWS_REGION
+)
 
-    # Create a Secrets Manager client
-    sm_client = boto3.client(
-        service_name='secretsmanager',
-        region_name=region_name
-    )
-
+@lru_cache(maxsize=1)
+def get_db_credentials():
     try:
-        response = sm_client.get_secret_value(
-            SecretId=secret_name
+        response = client.get_secret_value(
+            SecretId=SECRET_NAME
         )
     except ClientError as e:
         # For a list of exceptions thrown, see
@@ -38,27 +39,19 @@ def get_conn():
 
     secret = json.loads(response['SecretString'])
 
-    rds_client = boto3.client(
-        service_name='rds',
-        region_name=region_name
+    return secret
+
+def get_conn():
+    creds = get_db_credentials()
+    return psycopg2.connect(
+        host           = ENDPOINT,
+        port           = PORT,
+        dbname         = DBNAME,
+        user           = creds["username"],
+        password       = creds["password"],
+        cursor_factory = RealDictCursor,
     )
 
-    try:
-        conn = psycopg2.connect(
-            dbname=DBNAME,
-            user=secret['username'],
-            password=secret['password'],
-            host=ENDPOINT,
-            port=PORT,
-            cursor_factory=RealDictCursor
-        )
-    except Exception as e:
-        raise e
-
-    return conn
-
-# Initialize users table
-@app.before_request
 def init_db():
     with get_conn() as conn:
         with conn.cursor() as cur:
@@ -70,6 +63,12 @@ def init_db():
                 );
             """)
             conn.commit()
+
+init_db()
+
+@app.route('/hello')
+def hello():
+    return jsonify(message="Hello, world!")
 
 # List users
 @app.route('/users', methods=['GET'])
